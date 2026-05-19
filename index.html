@@ -610,7 +610,7 @@ td.name-cell input { min-width: 120px; }
                 <div class="equation-box">$$ \omega_{\text{top}} = \frac{v_{\text{top}}}{R_{\text{wheel}}} $$</div>
                 <p>Substituting into the voltage equation at top speed and solving for \(K_e\):</p>
                 <div class="equation-box">$$ \boxed{K_t = K_e = \frac{V_{oc} - I_{\text{cruise}} \cdot (R_{\text{wind}} + R_{\text{bat}})}{\omega_{\text{top}}}} $$</div>
-                <p>This is how we extract the motor constant from just the top speed, voltage, and resistances.</p>
+                <p><strong>Why does this work?</strong> At top speed, we know <em>everything</em> on the right side: the battery voltage \(V_{oc}\) is on the label, \(I_{\text{cruise}}\) is small (just overcoming drag), the resistances are estimated, and \(\omega_{\text{top}} = v_{\text{top}} / R_w\). The only unknown is \(K_e\), so we solve for it. It's just rearranging the voltage equation at the one operating point we can fully characterize.</p>
             </div>
 
             <div class="deriv-section">
@@ -625,11 +625,19 @@ td.name-cell input { min-width: 120px; }
 
                 <div class="constraint-box battery">
                     <h4>Zone 2: Battery Current Limit (constant power)</h4>
+                    <p>The battery delivers a fixed max power:</p>
                     <div class="equation-box">
                         $$ P_{\text{bat}} = (V_{oc} - I_{\text{bat,max}} \cdot R_{\text{bat}}) \cdot I_{\text{bat,max}} $$
+                    </div>
+                    <p>Here \(E\) is shorthand for the <strong>back-EMF at the current speed</strong>: \(E = K_e \cdot \omega\). The motor's voltage equation is:</p>
+                    <div class="equation-box">$$ V_{\text{motor}} = E + I \cdot R_{\text{wind}} $$</div>
+                    <p>Power delivered to the motor: \(P = V_{\text{motor}} \cdot I = (E + I \cdot R_{\text{wind}}) \cdot I\). Expanding:</p>
+                    <div class="equation-box">$$ R_{\text{wind}} \cdot I^2 + E \cdot I - P_{\text{bat}} = 0 $$</div>
+                    <p>This is a quadratic in \(I\). Applying the quadratic formula (\(ax^2+bx+c=0\)) and taking the positive root:</p>
+                    <div class="equation-box">
                         $$ I_2 = \frac{-E + \sqrt{E^2 + 4 R_{\text{wind}} \cdot P_{\text{bat}}}}{2 R_{\text{wind}}} $$
                     </div>
-                    <p>As speed rises, maintaining the phase current requires more power (since motor voltage = E + IR rises). When the required battery power exceeds \(V_{\text{bat}} \times I_{\text{bat,max}}\), the controller must reduce phase current to stay within the battery limit. Torque now falls roughly as \(1/\omega\) — constant power region.</p>
+                    <p>As speed rises, \(E\) grows, so \(I_2\) decreases — the motor can accept less current. Physically: maintaining phase current requires more power (motor voltage = \(E + IR\) rises). When the battery can't provide it, the controller reduces phase current. Torque falls roughly as \(1/\omega\) — constant power region.</p>
                 </div>
 
                 <div class="constraint-box voltage">
@@ -681,7 +689,26 @@ td.name-cell input { min-width: 120px; }
             </div>
 
             <div class="deriv-section">
-                <h3>7. The Voltage Slider — State of Charge</h3>
+                <h3>7. DC vs BLDC — Why This Model Works</h3>
+                <p>All the equations above look like a brushed DC motor. That's intentional — a 3-phase BLDC motor with <strong>trapezoidal commutation</strong> (which all e-bike controllers use) is electrically equivalent to a brushed DC motor.</p>
+                <p>The controller's job is to electronically switch (commutate) the phases so that current always flows through the correct coils — exactly what brushes do mechanically. The result:</p>
+                <table style="width:100%;font-size:13px;color:#bbb;margin:10px 0;border-collapse:collapse;">
+                    <tr style="border-bottom:1px solid #444;"><th style="text-align:left;padding:4px 8px;color:#fff;">Concept</th><th style="text-align:left;padding:4px 8px;color:#fff;">Brushed DC</th><th style="text-align:left;padding:4px 8px;color:#fff;">BLDC (trapezoidal)</th></tr>
+                    <tr><td style="padding:4px 8px;">\(V = E + IR\)</td><td style="padding:4px 8px;">Yes</td><td style="padding:4px 8px;">Yes (per-phase, controller handles switching)</td></tr>
+                    <tr><td style="padding:4px 8px;">\(K_t = K_e\)</td><td style="padding:4px 8px;">Yes</td><td style="padding:4px 8px;">Yes (using line-to-line constants)</td></tr>
+                    <tr><td style="padding:4px 8px;">Torque ∝ current</td><td style="padding:4px 8px;">Yes</td><td style="padding:4px 8px;">Yes</td></tr>
+                    <tr><td style="padding:4px 8px;">Back-EMF ∝ speed</td><td style="padding:4px 8px;">Yes</td><td style="padding:4px 8px;">Yes</td></tr>
+                </table>
+                <p><strong>What would break the model:</strong></p>
+                <ul>
+                    <li><strong>Field-Oriented Control (FOC)</strong> with field weakening — extends the constant-power zone past the nominal voltage limit by phase-shifting current. Budget e-bike controllers don't do this.</li>
+                    <li><strong>Interior permanent magnet (IPM) motors</strong> — have reluctance torque that doesn't follow \(T = K_t I\). E-bike hub motors are surface-magnet (SPM), so this doesn't apply.</li>
+                </ul>
+                <p><em>Bottom line:</em> For surface-magnet BLDC with trapezoidal control (= all e-bike hub motors), the DC motor equations are exact. The "B" in BLDC just means commutation is done by transistors instead of carbon brushes.</p>
+            </div>
+
+            <div class="deriv-section">
+                <h3>8. The Voltage Slider — State of Charge</h3>
                 <p>A lithium battery's voltage varies with state of charge (SOC):</p>
                 <div class="equation-box">
                     $$ V_{\text{actual}} = V_{\text{nominal}} \times (1 + \text{slider}\%) $$
