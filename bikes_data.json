@@ -1,0 +1,115 @@
+[
+  {
+    "values": {
+      "name": "R19 6000w",
+      "topSpeed": 50,
+      "motorPeak": 6000,
+      "battMaxI": 80,
+      "ctrlMaxI": 200,
+      "voc": 72,
+      "rbat": 0.15,
+      "rwind": 0.08,
+      "gearRatio": 1,
+      "wheelR": 19,
+      "mass": 260,
+      "cda": 0.5,
+      "cr": 0.01,
+      "kt": 0.6504,
+      "ke": 0.6504
+    },
+    "modified": [
+      "mass"
+    ]
+  },
+  {
+    "values": {
+      "name": "r6k",
+      "topSpeed": 55,
+      "motorPeak": 7000,
+      "battMaxI": 70,
+      "ctrlMaxI": 200,
+      "voc": 60,
+      "rbat": 0.15,
+      "rwind": 0.08,
+      "gearRatio": 1,
+      "wheelR": 19,
+      "mass": 250,
+      "cda": 0.5,
+      "cr": 0.01,
+      "kt": 0.4073,
+      "ke": 0.4073
+    },
+    "modified": [
+      "voc",
+      "mass"
+    ]
+  },
+  {
+    "values": {
+      "name": "R19 9000w",
+      "topSpeed": 60,
+      "motorPeak": 9000,
+      "battMaxI": 90,
+      "ctrlMaxI": 220,
+      "voc": 72,
+      "rbat": 0.15,
+      "rwind": 0.08,
+      "gearRatio": 1,
+      "wheelR": 19,
+      "mass": 260,
+      "cda": 0.5,
+      "cr": 0.01,
+      "kt": 0.469,
+      "ke": 0.469
+    },
+    "modified": [
+      "mass"
+    ]
+  },
+  {
+    "values": {
+      "name": "Bopzin q8",
+      "topSpeed": 45,
+      "motorPeak": 3000,
+      "battMaxI": 70,
+      "ctrlMaxI": 200,
+      "voc": 60,
+      "rbat": 0.15,
+      "rwind": 0.08,
+      "gearRatio": 1,
+      "wheelR": 19,
+      "mass": 250,
+      "cda": 0.5,
+      "cr": 0.01,
+      "kt": 0.5948,
+      "ke": 0.5948
+    },
+    "modified": [
+      "voc",
+      "mass"
+    ]
+  },
+  {
+    "values": {
+      "name": "freego x2",
+      "topSpeed": 50,
+      "motorPeak": 6000,
+      "battMaxI": 80,
+      "ctrlMaxI": 200,
+      "voc": 60,
+      "rbat": 0.15,
+      "rwind": 0.08,
+      "gearRatio": 1,
+      "wheelR": 19,
+      "mass": 250,
+      "cda": 0.5,
+      "cr": 0.01,
+      "kt": 0.4959,
+      "ke": 0.4959
+    },
+    "modified": [
+      "voc",
+      "mass"
+    ]
+  }
+]

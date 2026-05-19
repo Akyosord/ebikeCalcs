@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Bike Acceleration Simulator</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Material+Symbols+Outlined" rel="stylesheet">
+<style>
+:root {
+    --bg-primary: #121212;
+    --bg-surface: #1e1e1e;
+    --bg-surface-2: #2a2a2a;
+    --bg-surface-3: #333333;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --text-muted: #666;
+    --accent: #bb86fc;
+    --accent-dim: #9c64e8;
+    --success: #03dac6;
+    --warning: #ffb74d;
+    --error: #cf6679;
+    --border: #3a3a3a;
+    --input-bg: #2c2c2c;
+    --shadow: 0 2px 8px rgba(0,0,0,0.4);
+    --radius: 8px;
+    --constraint-phase: #2196F3;
+    --constraint-battery: #FF9800;
+    --constraint-voltage: #F44336;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+.app-header {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.app-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+}
+.app-header .subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px 32px;
+    width: 100%;
+    margin: 0 auto;
+}
+/* Grid / Table */
+.grid-section {
+    background: var(--bg-surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    width: 100%;
+}
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+.section-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.btn-primary {
+    background: var(--accent);
+    color: #121212;
+}
+.btn-primary:hover { background: var(--accent-dim); }
+.btn-success {
+    background: var(--success);
+    color: #121212;
+}
+.btn-success:hover { opacity: 0.85; }
+.btn-danger {
+    background: var(--error);
+    color: #fff;
+}
+.btn-danger:hover { opacity: 0.85; }
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--bg-surface-2); }
+.btn-group { display: flex; gap: 8px; }
+
+/* Data grid */
+.grid-container {
+    overflow-x: auto;
+    width: 100%;
+}
+table.data-grid {
+    width: 100%;
+    min-width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    table-layout: auto;
+}
+table.data-grid thead th {
+    background: var(--bg-surface-2);
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+}
+table.data-grid thead th .param-type {
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+table.data-grid thead th .param-type.input { color: var(--accent); }
+table.data-grid thead th .param-type.assumption { color: var(--warning); }
+table.data-grid thead th .param-type.calculated { color: var(--success); }
+table.data-grid tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+table.data-grid tbody tr:hover {
+    background: var(--bg-surface-2);
+}
+table.data-grid td {
+    padding: 6px 8px;
+}
+table.data-grid td input {
+    width: 100%;
+    min-width: 70px;
+    background: var(--input-bg);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 6px 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+table.data-grid td input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+table.data-grid td input.modified {
+    border-color: var(--accent);
+    background: rgba(187, 134, 252, 0.05);
+}
+table.data-grid td input.calculated-field {
+    color: var(--success);
+    background: rgba(3, 218, 198, 0.05);
+    border-color: rgba(3, 218, 198, 0.2);
+}
+table.data-grid td input[readonly] {
+    opacity: 0.7;
+    cursor: default;
+}
+table.data-grid td .delete-row-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+table.data-grid td .delete-row-btn:hover {
+    color: var(--error);
+    background: rgba(207, 102, 121, 0.1);
+}
+/* Name input wider */
+td.name-cell input { min-width: 120px; }
+
+/* Legend */
+.legend-bar {
+    display: flex;
+    gap: 20px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+.legend-dot.input { background: var(--accent); }
+.legend-dot.assumption { background: var(--warning); }
+.legend-dot.calculated { background: var(--success); }
+.legend-dot.modified { border: 2px solid var(--accent); background: transparent; }
+
+/* Charts */
+.charts-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+.chart-card {
+    background: var(--bg-surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+.chart-card .chart-title {
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+}
+.chart-container {
+    width: 100%;
+    height: 350px;
+}
+/* Constraint legend below charts */
+.constraint-legend {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    padding: 12px;
+    background: var(--bg-surface);
+    border-radius: var(--radius);
+}
+.constraint-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+.constraint-swatch {
+    width: 24px;
+    height: 4px;
+    border-radius: 2px;
+}
+
+@media (max-width: 1100px) {
+    .charts-section { grid-template-columns: 1fr; }
+}
+/* Info icon tooltips */
+.info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border);
+    font-size: 10px;
+    font-weight: 700;
+    font-style: italic;
+    color: var(--text-secondary);
+    cursor: help;
+    position: relative;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+.info-icon:hover {
+    background: var(--accent);
+    color: #121212;
+    border-color: var(--accent);
+}
+/* Tooltip popup */
+.tooltip-popup {
+    position: fixed;
+    z-index: 10000;
+    background: #1a1a1a;
+    border: 1px solid #555;
+    border-radius: 10px;
+    padding: 16px 20px;
+    width: 340px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e0e0e0;
+}
+.tooltip-popup.visible { opacity: 1; }
+.tooltip-popup .tt-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+.tooltip-popup .tt-body {
+    color: #ccc;
+}
+.tooltip-popup .tt-formula {
+    display: block;
+    background: #0d0d0d;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--success);
+    white-space: pre;
+    line-height: 1.8;
+}
+.tooltip-popup .tt-list {
+    margin: 8px 0;
+    padding-left: 16px;
+}
+.tooltip-popup .tt-list li {
+    margin: 4px 0;
+    color: #bbb;
+}
+.tooltip-popup .tt-note {
+    font-size: 11px;
+    color: #888;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* Derivation section */
+.derivation-content {
+    color: var(--text-primary);
+    line-height: 1.7;
+}
+.deriv-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
+.deriv-section:last-child { border-bottom: none; }
+.deriv-section h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 10px;
+}
+.deriv-section p {
+    margin: 8px 0;
+    color: #ccc;
+    font-size: 14px;
+}
+.deriv-section ul {
+    margin: 8px 0 8px 20px;
+    color: #bbb;
+    font-size: 14px;
+}
+.deriv-section ul li { margin: 4px 0; }
+.math {
+    font-family: 'Courier New', monospace;
+    background: rgba(3, 218, 198, 0.08);
+    color: var(--success);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+}
+.equation-box {
+    background: #0d0d0d;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: var(--success);
+    line-height: 2;
+}
+.equation-box .eq-step {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 8px;
+    margin-bottom: 2px;
+}
+.equation-box .eq-step:first-child { margin-top: 0; }
+.constraint-box {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    border-left: 4px solid;
+}
+.constraint-box h4 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+.constraint-box p { font-size: 13px; color: #bbb; margin: 6px 0; }
+.constraint-box.phase {
+    background: rgba(33,150,243,0.06);
+    border-color: var(--constraint-phase);
+}
+.constraint-box.phase h4 { color: var(--constraint-phase); }
+.constraint-box.battery {
+    background: rgba(255,152,0,0.06);
+    border-color: var(--constraint-battery);
+}
+.constraint-box.battery h4 { color: var(--constraint-battery); }
+.constraint-box.voltage {
+    background: rgba(244,67,54,0.06);
+    border-color: var(--constraint-voltage);
+}
+.constraint-box.voltage h4 { color: var(--constraint-voltage); }
+
+@media (max-width: 768px) {
+    .main-content { padding: 16px; }
+    .app-header { padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+    <div>
+        <h1>E-Bike Acceleration Simulator</h1>
+        <div class="subtitle">Compare speed & acceleration curves across multiple e-bikes</div>
+    </div>
+</header>
+
+<main class="main-content">
+    <section class="grid-section">
+        <div class="section-header">
+            <h2>
+                <span class="material-symbols-outlined" style="font-size:20px">electric_bike</span>
+                Bike Parameters
+            </h2>
+            <div class="btn-group">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);">
+                    Max Time (s):
+                    <input type="number" id="simTimeMax" value="30" min="5" max="300" step="5" style="width:60px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;padding:4px 8px;color:var(--text-primary);font-size:13px;">
+                </label>
+                <button class="btn btn-primary" onclick="addBike()">
+                    <span class="material-symbols-outlined" style="font-size:16px">add</span> Add Bike
+                </button>
+                <button class="btn btn-success" onclick="simulate()">
+                    <span class="material-symbols-outlined" style="font-size:16px">play_arrow</span> Calculate & Plot
+                </button>
+            </div>
+        </div>
+        <div class="grid-container">
+            <table class="data-grid" id="bikeGrid">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Name<span class="param-type input">input</span></th>
+                        <th>Top Speed (mph) <span class="info-icon" data-tt="topSpeed">i</span><span class="param-type input">input</span></th>
+                        <th>Motor Peak (W) <span class="info-icon" data-tt="motorPeak">i</span><span class="param-type input">input</span></th>
+                        <th>Batt Max I (A) <span class="info-icon" data-tt="battMaxI">i</span><span class="param-type input">input</span></th>
+                        <th>Ctrl Max I (A) <span class="info-icon" data-tt="ctrlMaxI">i</span><span class="param-type input">input</span></th>
+                        <th>Voc (V) <span class="info-icon" data-tt="voc">i</span><span class="param-type assumption">assumption</span></th>
+                        <th>R_bat (Ω) <span class="info-icon" data-tt="rbat">i</span><span class="param-type assumption">assumption</span></th>
+                        <th>R_wind (Ω) <span class="info-icon" data-tt="rwind">i</span><span class="param-type assumption">assumption</span></th>
+                        <th>Gear Ratio <span class="info-icon" data-tt="gearRatio">i</span><span class="param-type assumption">assumption</span></th>
+                        <th>Wheel (in) <span class="info-icon" data-tt="wheelR">i</span><span class="param-type assumption">assumption</span></th>
+                        <th>Mass (lbs) <span class="info-icon" data-tt="mass">i</span><span class="param-type assumption">assumption</span></th>
+                        <th>CdA (m²) <span class="info-icon" data-tt="cda">i</span><span class="param-type assumption">assumption</span></th>
+                        <th>Cr <span class="info-icon" data-tt="cr">i</span><span class="param-type assumption">assumption</span></th>
+                        <th>Kt (Nm/A) <span class="info-icon" data-tt="kt">i</span><span class="param-type calculated">calculated</span></th>
+                        <th>Ke (V/rad/s) <span class="info-icon" data-tt="ke">i</span><span class="param-type calculated">calculated</span></th>
+                    </tr>
+                </thead>
+                <tbody id="bikeGridBody">
+                </tbody>
+            </table>
+        </div>
+        <div class="legend-bar">
+            <div class="legend-item"><div class="legend-dot input"></div> Input — you must provide</div>
+            <div class="legend-item"><div class="legend-dot assumption"></div> Assumption — pre-filled default, editable</div>
+            <div class="legend-item"><div class="legend-dot calculated"></div> Calculated — derived from inputs</div>
+            <div class="legend-item"><div class="legend-dot modified"></div> Modified — user changed from default</div>
+        </div>
+    </section>
+
+    <div class="charts-section">
+        <div class="chart-card">
+            <div class="chart-title">Speed vs Time</div>
+            <div class="chart-container" id="speedChart"></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Acceleration vs Time</div>
+            <div class="chart-container" id="accelChart"></div>
+        </div>
+    </div>
+
+    <div class="constraint-legend">
+        <div class="constraint-item">
+            <svg width="32" height="4"><line x1="0" y1="2" x2="32" y2="2" stroke="#e0e0e0" stroke-width="2.5"/></svg>
+            Phase Current Limit (constant torque)
+        </div>
+        <div class="constraint-item">
+            <svg width="32" height="4"><line x1="0" y1="2" x2="32" y2="2" stroke="#e0e0e0" stroke-width="2.5" stroke-dasharray="6,3"/></svg>
+            Battery Current Limit (constant power)
+        </div>
+        <div class="constraint-item">
+            <svg width="32" height="4"><line x1="0" y1="2" x2="32" y2="2" stroke="#e0e0e0" stroke-width="2.5" stroke-dasharray="2,3"/></svg>
+            Voltage Limit (back-EMF)
+        </div>
+    </div>
+
+    <!-- Voltage Percent Slider -->
+    <section class="grid-section" style="padding: 20px 24px;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <h2 style="font-size:15px;font-weight:600;margin:0;display:flex;align-items:center;gap:8px;">
+                <span class="material-symbols-outlined" style="font-size:18px">battery_charging_full</span>
+                Voltage Adjustment
+            </h2>
+            <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:300px;">
+                <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap;">−20%</span>
+                <input type="range" id="voltageSlider" min="-20" max="15" value="0" step="1"
+                    style="flex:1;accent-color:var(--accent);cursor:pointer;">
+                <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap;">+15%</span>
+            </div>
+            <span id="voltageLabel" style="font-size:14px;font-weight:500;color:var(--accent);min-width:60px;">0%</span>
+            <span style="font-size:12px;color:var(--text-muted);">Simulates battery state of charge / sag. 0% = nominal Voc. Positive = freshly charged. Negative = depleted or heavy sag.</span>
+        </div>
+    </section>
+
+    <!-- Equation Derivations -->
+    <section class="grid-section" style="padding: 24px 28px;">
+        <h2 style="font-size:18px;font-weight:600;margin-bottom:20px;color:var(--accent);display:flex;align-items:center;gap:8px;">
+            <span class="material-symbols-outlined" style="font-size:20px">functions</span>
+            How It Works — Full Derivation
+        </h2>
+
+        <div class="derivation-content">
+            <div class="deriv-section">
+                <h3>1. The Motor — Converting Electricity to Spinning</h3>
+                <p>A brushless DC (BLDC) hub motor has magnets on the wheel and copper coils on the axle. When current flows through the coils, it pushes against the magnets and makes the wheel spin.</p>
+                <p>Two numbers define any motor:</p>
+                <ul>
+                    <li><strong>K<sub>t</sub></strong> (torque constant) — how much torque you get per amp: <span class="math">T = K_t × I</span></li>
+                    <li><strong>K<sub>e</sub></strong> (back-EMF constant) — how much voltage the motor generates when spinning: <span class="math">E = K_e × ω</span></li>
+                </ul>
+                <p>The magic: for any BLDC motor, <strong>K<sub>t</sub> = K<sub>e</sub></strong> (in SI units). They're the same number! A motor that gives lots of torque per amp also generates lots of voltage per speed.</p>
+            </div>
+
+            <div class="deriv-section">
+                <h3>2. The Electrical Equation — Voltage Budget</h3>
+                <p>Think of the battery voltage as a "budget" that gets spent on three things:</p>
+                <div class="equation-box">
+                    V<sub>bat</sub> = E + I × R<sub>winding</sub> + I<sub>bat</sub> × R<sub>battery</sub>
+                </div>
+                <p>Where:</p>
+                <ul>
+                    <li><strong>E = K<sub>e</sub> × ω</strong> — back-EMF (voltage "used up" by the motor spinning)</li>
+                    <li><strong>I × R<sub>winding</sub></strong> — voltage lost as heat in the motor coils</li>
+                    <li><strong>I<sub>bat</sub> × R<sub>battery</sub></strong> — voltage lost inside the battery (sag)</li>
+                </ul>
+                <p>As you go faster, the back-EMF E grows. Eventually it uses up almost all the battery voltage, and there's nothing left to push current through → no more torque → you stop accelerating. That's your top speed.</p>
+            </div>
+
+            <div class="deriv-section">
+                <h3>3. Finding K<sub>t</sub> from Top Speed</h3>
+                <p>At top speed, you're no longer accelerating — the motor just needs enough torque to fight air drag and tire friction. We use this to work backwards:</p>
+                <div class="equation-box">
+                    <div class="eq-step">Step 1: Drag force at top speed</div>
+                    F<sub>drag</sub> = ½ × ρ × CdA × v<sub>top</sub>²
+                    <div class="eq-step">Step 2: Rolling resistance</div>
+                    F<sub>roll</sub> = C<sub>r</sub> × m × g
+                    <div class="eq-step">Step 3: Power needed to cruise at top speed</div>
+                    P<sub>cruise</sub> = (F<sub>drag</sub> + F<sub>roll</sub>) × v<sub>top</sub>
+                    <div class="eq-step">Step 4: Current at cruise</div>
+                    I<sub>cruise</sub> = P<sub>cruise</sub> / V<sub>oc</sub>
+                    <div class="eq-step">Step 5: Motor speed (hub motor, G=1)</div>
+                    ω = v<sub>top</sub> / R<sub>wheel</sub>
+                    <div class="eq-step">Step 6: Solve for K<sub>e</sub></div>
+                    K<sub>e</sub> = (V<sub>oc</sub> − I<sub>cruise</sub> × (R<sub>wind</sub> + R<sub>bat</sub>)) / ω
+                </div>
+                <p>Since K<sub>t</sub> = K<sub>e</sub>, we now know the motor's torque constant from just the top speed and battery voltage.</p>
+            </div>
+
+            <div class="deriv-section">
+                <h3>4. Three Speed Zones — What Limits You When</h3>
+                <p>At any speed, the motor current is limited by whichever constraint is tightest:</p>
+
+                <div class="constraint-box phase">
+                    <h4>Zone 1: Phase Current Limit (low speed)</h4>
+                    <div class="equation-box">I = I<sub>phase_max</sub> (set by controller)</div>
+                    <p>At low speed, back-EMF is small, so the controller can push maximum current into the motor. Torque is constant: T = K<sub>t</sub> × I<sub>phase_max</sub></p>
+                    <p><strong>This is your launch acceleration.</strong></p>
+                </div>
+
+                <div class="constraint-box battery">
+                    <h4>Zone 2: Battery Current Limit (mid speed)</h4>
+                    <div class="equation-box">
+                        P<sub>available</sub> = V<sub>bat</sub> × I<sub>bat_max</sub><br>
+                        As speed ↑, power demand rises → battery current hits its limit<br>
+                        Torque must drop: T = P / (ω × R<sub>wheel</sub>)
+                    </div>
+                    <p>The controller can no longer maintain full phase current because the battery can't supply enough power. You're in "constant power" mode — torque falls as 1/speed.</p>
+                </div>
+
+                <div class="constraint-box voltage">
+                    <h4>Zone 3: Voltage Limit (high speed)</h4>
+                    <div class="equation-box">I = (V<sub>bat</sub> − K<sub>e</sub> × ω) / (R<sub>wind</sub> + R<sub>bat</sub>)</div>
+                    <p>Back-EMF is so high it nearly equals battery voltage. Very little current can flow regardless of limits. Torque drops linearly to zero at the no-load speed.</p>
+                </div>
+            </div>
+
+            <div class="deriv-section">
+                <h3>5. From Torque to Acceleration</h3>
+                <p>Once we know torque at any speed, Newton's 2nd law gives acceleration:</p>
+                <div class="equation-box">
+                    <div class="eq-step">Force at wheel (hub motor):</div>
+                    F = T / R<sub>wheel</sub> = K<sub>t</sub> × I / R<sub>wheel</sub>
+                    <div class="eq-step">Subtract drag and rolling resistance:</div>
+                    F<sub>net</sub> = F − F<sub>drag</sub> − F<sub>roll</sub>
+                    <div class="eq-step">Newton's 2nd law:</div>
+                    <strong>a = F<sub>net</sub> / m</strong>
+                </div>
+                <p>The simulation computes this at tiny time steps (0.05s), updating speed each step. That traces out the full speed-vs-time curve you see in the chart.</p>
+            </div>
+
+            <div class="deriv-section">
+                <h3>6. Why Higher Wattage ≠ Faster Launch</h3>
+                <p>For hub motors on the same voltage:</p>
+                <div class="equation-box">
+                    Launch force = V<sub>oc</sub> × I<sub>phase</sub> / v<sub>top</sub>
+                </div>
+                <p>If a "9000W" motor achieves its rating by having higher top speed (lower K<sub>t</sub>), then at the same phase current it actually has <em>less</em> launch torque than a "6000W" motor with lower top speed.</p>
+                <p><strong>Wattage = torque × speed.</strong> You can have high watts from lots of torque at low speed, OR moderate torque at high speed. The spec sheet tells you total watts, not how they're split.</p>
+            </div>
+
+            <div class="deriv-section">
+                <h3>7. The Voltage Slider — State of Charge</h3>
+                <p>A "72V" battery isn't always 72V:</p>
+                <ul>
+                    <li><strong>Fully charged (100% SOC):</strong> ~84V (+15%) for a 20S lithium pack</li>
+                    <li><strong>Nominal (50% SOC):</strong> ~72V (0%)</li>
+                    <li><strong>Nearly empty (20% SOC):</strong> ~62V (−14%)</li>
+                    <li><strong>Under heavy load:</strong> further sag from internal resistance</li>
+                </ul>
+                <p>Higher voltage → more current can flow at any speed → more torque → faster acceleration. This is why your bike feels faster on a full charge.</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+// Default assumption values
+const DEFAULTS = {
+    name: 'Bike 1',
+    topSpeed: 50,      // mph
+    motorPeak: 6000,   // W
+    battMaxI: 80,      // A
+    ctrlMaxI: 200,     // A
+    voc: 72,           // V
+    rbat: 0.15,        // Ω
+    rwind: 0.08,       // Ω
+    gearRatio: 1,      // hub motor = 1
+    wheelR: 19,        // wheel diameter in inches
+    mass: 310,         // lbs (bike + rider)
+    cda: 0.5,          // m²
+    cr: 0.01,
+};
+
+let bikeCounter = 0;
+let bikes = []; // [{id, defaults: {...}, modified: Set}]
+
+const COLUMNS = ['name','topSpeed','motorPeak','battMaxI','ctrlMaxI','voc','rbat','rwind','gearRatio','wheelR','mass','cda','cr','kt','ke'];
+const ASSUMPTION_COLS = ['voc','rbat','rwind','gearRatio','wheelR','mass','cda','cr'];
+const CALCULATED_COLS = ['kt','ke'];
+
+function addBike() {
+    bikeCounter++;
+    // Copy values from last bike if exists
+    let vals;
+    if (bikes.length > 0) {
+        const lastBike = bikes[bikes.length - 1];
+        vals = {...getRowValues(lastBike.id)};
+        vals.name = `Bike ${bikeCounter}`;
+    } else {
+        vals = {...DEFAULTS};
+        vals.name = `Bike ${bikeCounter}`;
+    }
+
+    const bikeId = `bike_${bikeCounter}`;
+    bikes.push({id: bikeId, defaults: {...DEFAULTS}, modified: new Set()});
+
+    const tbody = document.getElementById('bikeGridBody');
+    const tr = document.createElement('tr');
+    tr.id = bikeId;
+
+    // Delete button
+    tr.innerHTML = `<td><button class="delete-row-btn" onclick="deleteBike('${bikeId}')" title="Delete"><span class="material-symbols-outlined" style="font-size:18px">close</span></button></td>`;
+
+    COLUMNS.forEach(col => {
+        const td = document.createElement('td');
+        if (col === 'name') td.className = 'name-cell';
+        const input = document.createElement('input');
+        input.type = col === 'name' ? 'text' : 'number';
+        input.step = 'any';
+        input.dataset.col = col;
+        input.value = vals[col] !== undefined ? vals[col] : '';
+
+        if (CALCULATED_COLS.includes(col)) {
+            input.readOnly = true;
+            input.classList.add('calculated-field');
+            input.value = '';
+        }
+
+        // Track modifications to assumption fields
+        if (ASSUMPTION_COLS.includes(col)) {
+            input.addEventListener('input', () => markModified(bikeId, col, input));
+        }
+
+        td.appendChild(input);
+        tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+    recalcRow(bikeId);
+}
+
+function deleteBike(bikeId) {
+    const row = document.getElementById(bikeId);
+    if (row) row.remove();
+    bikes = bikes.filter(b => b.id !== bikeId);
+}
+
+function getRowValues(bikeId) {
+    const row = document.getElementById(bikeId);
+    if (!row) return null;
+    const vals = {};
+    row.querySelectorAll('input[data-col]').forEach(inp => {
+        const col = inp.dataset.col;
+        vals[col] = col === 'name' ? inp.value : parseFloat(inp.value);
+    });
+    return vals;
+}
+
+function markModified(bikeId, col, input) {
+    const bike = bikes.find(b => b.id === bikeId);
+    if (!bike) return;
+    const defaultVal = bike.defaults[col];
+    if (parseFloat(input.value) !== defaultVal) {
+        bike.modified.add(col);
+        input.classList.add('modified');
+    } else {
+        bike.modified.delete(col);
+        input.classList.remove('modified');
+    }
+    recalcRow(bikeId);
+}
+
+function recalcRow(bikeId) {
+    const vals = getRowValues(bikeId);
+    if (!vals) return;
+
+    // Convert wheel diameter in inches to radius in meters
+    const Rw = vals.wheelR * 0.0254 / 2;
+
+    // Calculate Kt from top speed and voltage
+    // At top speed, approximately: Voc ≈ Ke * omega_motor (no-load approximation)
+    // omega_wheel = v_top / Rw, omega_motor = omega_wheel * G
+    const vTopMs = vals.topSpeed * 0.44704; // mph to m/s
+    const omegaWheel = vTopMs / Rw;
+    const omegaMotor = omegaWheel * vals.gearRatio;
+
+    // Better: at top speed motor current is just enough to overcome drag+rolling
+    // Voc = Ke*omega_motor + I_cruise*(R_wind + R_bat)
+    // Power at top speed: P = F_drag*v + F_roll*v
+    // F_drag = 0.5 * 1.225 * CdA * v^2, F_roll = Cr * m * 9.81
+    const Fdrag = 0.5 * 1.225 * vals.cda * vTopMs * vTopMs;
+    const Froll = vals.cr * (vals.mass * 0.4536) * 9.81; // lbs to kg
+    const Ptop = (Fdrag + Froll) * vTopMs;
+    // I_cruise = Ptop / Voc (approx)
+    const Icruise = Ptop / vals.voc;
+    // Ke = (Voc - Icruise*(Rwind+Rbat)) / omega_motor
+    let Ke = (vals.voc - Icruise * (vals.rwind + vals.rbat)) / omegaMotor;
+    if (Ke <= 0 || !isFinite(Ke)) Ke = vals.voc / omegaMotor; // fallback
+    const Kt = Ke;
+
+    // Set calculated fields
+    const row = document.getElementById(bikeId);
+    row.querySelector('input[data-col="kt"]').value = Kt.toFixed(4);
+    row.querySelector('input[data-col="ke"]').value = Ke.toFixed(4);
+}
+
+function simulate() {
+    const speedTraces = [];
+    const accelTraces = [];
+    const colors = ['#bb86fc','#03dac6','#ff7043','#42a5f5','#66bb6a','#ffa726','#ab47bc','#ef5350'];
+    const tMax = parseFloat(document.getElementById('simTimeMax').value) || 60;
+
+    bikes.forEach((bike, idx) => {
+        recalcRow(bike.id);
+        const vals = getRowValues(bike.id);
+        if (!vals) return;
+
+        const Kt = parseFloat(document.getElementById(bike.id).querySelector('input[data-col="kt"]').value);
+        const Ke = Kt;
+        const params = {
+            Kt, Ke,
+            R: vals.rwind,
+            Voc: vals.voc * (1 + voltagePct / 100),  // apply voltage slider
+            Rbat: vals.rbat,
+            I_bat_max: vals.battMaxI,
+            I_phase_max: vals.ctrlMaxI,
+            G: vals.gearRatio,
+            Rw: vals.wheelR * 0.0254 / 2,  // inches diameter to meters radius
+            m: vals.mass * 0.4536,  // lbs to kg
+            CdA: vals.cda,
+            Cr: vals.cr,
+        };
+
+        const result = runSimulation(params, 0.05, tMax);
+        const color = colors[idx % colors.length];
+
+        // Speed trace (m/s -> mph)
+        const vMph = result.v.map(v => v * 2.23694);
+
+        // Acceleration in Gs
+        const dt = 0.05;
+        const aGs = [];
+        for (let i = 0; i < result.v.length - 1; i++) {
+            aGs.push((result.v[i+1] - result.v[i]) / dt / 9.81);
+        }
+        aGs.push(aGs[aGs.length-1] || 0);
+        const smoothed = smoothArray(aGs, 10);
+
+        // Break into segments by constraint and use different dash styles
+        // solid = phase current limit, dash = battery limit, dot = voltage limit
+        const dashStyles = ['solid', 'dash', 'dot'];
+        const segments = getConstraintSegments(result.constraints);
+
+        segments.forEach((seg, si) => {
+            const showLegend = si === 0; // only first segment gets legend entry
+            const tSeg = result.t.slice(seg.start, seg.end + 1);
+            const vSeg = vMph.slice(seg.start, seg.end + 1);
+            const aSeg = smoothed.slice(seg.start, seg.end + 1);
+
+            // Overlap one point with next segment for continuity
+            if (seg.end + 1 < result.t.length) {
+                tSeg.push(result.t[seg.end + 1]);
+                vSeg.push(vMph[seg.end + 1]);
+                aSeg.push(smoothed[seg.end + 1]);
+            }
+
+            speedTraces.push({
+                x: tSeg, y: vSeg,
+                mode: 'lines',
+                name: showLegend ? vals.name : vals.name,
+                legendgroup: vals.name,
+                showlegend: showLegend,
+                line: {color: color, width: 2.5, dash: dashStyles[seg.constraint]},
+            });
+
+            accelTraces.push({
+                x: tSeg, y: aSeg,
+                mode: 'lines',
+                name: showLegend ? vals.name : vals.name,
+                legendgroup: vals.name,
+                showlegend: showLegend,
+                line: {color: color, width: 2.5, dash: dashStyles[seg.constraint]},
+            });
+        });
+    });
+
+    const darkLayout = {
+        paper_bgcolor: '#1e1e1e',
+        plot_bgcolor: '#1e1e1e',
+        font: {color: '#e0e0e0', family: 'Inter'},
+        margin: {t: 20, b: 50, l: 60, r: 20},
+        xaxis: {gridcolor: '#333', zerolinecolor: '#444', title: 'Time (s)'},
+    };
+
+    Plotly.newPlot('speedChart', speedTraces, {
+        ...darkLayout,
+        legend: {x: 0.98, y: 0.02, xanchor: 'right', yanchor: 'bottom', bgcolor: 'rgba(30,30,30,0.8)'},
+        yaxis: {gridcolor: '#333', zerolinecolor: '#444', title: 'Speed (mph)'},
+    }, {responsive: true, displayModeBar: false});
+
+    Plotly.newPlot('accelChart', accelTraces, {
+        ...darkLayout,
+        legend: {x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top', bgcolor: 'rgba(30,30,30,0.8)'},
+        yaxis: {gridcolor: '#333', zerolinecolor: '#444', title: 'Acceleration (g)'},
+    }, {responsive: true, displayModeBar: false});
+}
+
+// Get contiguous constraint segments from array
+function getConstraintSegments(constraints) {
+    const segments = [];
+    let start = 0;
+    let current = constraints[0];
+    for (let i = 1; i <= constraints.length; i++) {
+        if (i === constraints.length || constraints[i] !== current) {
+            segments.push({start, end: i - 1, constraint: current});
+            if (i < constraints.length) {
+                start = i;
+                current = constraints[i];
+            }
+        }
+    }
+    return segments;
+}
+
+let lastSimConstraints = null;
+
+function runSimulation(params, dt, tMax) {
+    const {Kt, Ke, R, Voc, Rbat, I_bat_max, I_phase_max, G, Rw, m, CdA, Cr} = params;
+    const rho = 1.225;
+    const g = 9.81;
+    const steps = Math.floor(tMax / dt);
+
+    const t = new Array(steps);
+    const v = new Array(steps);
+    const constraints = new Array(steps);
+
+    let vel = 0;
+    let time = 0;
+
+    for (let i = 0; i < steps; i++) {
+        t[i] = time;
+        v[i] = vel;
+
+        // Motor angular velocity
+        const omegaMotor = vel * G / Rw;
+        const E = Ke * omegaMotor; // back-EMF
+
+        // Constraint 1: Phase current limit
+        const I1 = I_phase_max;
+
+        // Constraint 2: Battery current limit (power limited)
+        const Vbat = Voc - I_bat_max * Rbat;
+        const Pbat = Vbat * I_bat_max;
+        const disc = E * E + 4 * R * Pbat;
+        let I2 = disc > 0 ? (-E + Math.sqrt(disc)) / (2 * R) : 0;
+
+        // Constraint 3: Voltage limit (full duty)
+        let I3 = (Voc - E) / (R + Rbat);
+
+        // Clamp negatives
+        I2 = Math.max(0, I2);
+        I3 = Math.max(0, I3);
+
+        // Active constraint: whichever gives lowest current
+        let Iactual, constraint;
+        if (I1 <= I2 && I1 <= I3) { Iactual = I1; constraint = 0; }
+        else if (I2 <= I1 && I2 <= I3) { Iactual = I2; constraint = 1; }
+        else { Iactual = I3; constraint = 2; }
+
+        constraints[i] = constraint;
+
+        // Torque and force
+        const Tmotor = Kt * Iactual;
+        const Twheel = Tmotor * G;
+        const Ftract = Twheel / Rw;
+
+        // Resistive forces
+        const Fdrag = 0.5 * rho * CdA * vel * vel;
+        const Froll = Cr * m * g;
+
+        // Net acceleration
+        let a = (Ftract - Fdrag - Froll) / m;
+        if (a < 0 && vel <= 0) a = 0;
+
+        vel += a * dt;
+        if (vel < 0) vel = 0;
+        time += dt;
+
+        // Early termination if at steady state
+        if (i > 20 && Math.abs(a) < 0.005 && vel > 0.5) {
+            for (let j = i + 1; j < steps; j++) {
+                t[j] = t[j-1] + dt;
+                v[j] = vel;
+                constraints[j] = constraint;
+            }
+            break;
+        }
+    }
+
+    lastSimConstraints = {t, v, constraints};
+    return {t, v, constraints};
+}
+
+function smoothArray(arr, windowSize) {
+    const result = new Array(arr.length);
+    for (let i = 0; i < arr.length; i++) {
+        let sum = 0, count = 0;
+        for (let j = Math.max(0, i - windowSize); j <= Math.min(arr.length - 1, i + windowSize); j++) {
+            sum += arr[j];
+            count++;
+        }
+        result[i] = sum / count;
+    }
+    return result;
+}
+
+// --- Persistence: Save/Load from server JSON file ---
+
+function getAllBikeData() {
+    return bikes.map(bike => {
+        const vals = getRowValues(bike.id);
+        return {
+            values: vals,
+            modified: [...bike.modified],
+        };
+    });
+}
+
+function saveData() {
+    const data = getAllBikeData();
+    fetch('/api/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
+    }).then(r => r.json()).then(res => {
+        if (res.ok) showToast('Saved to bikes_data.json');
+    }).catch(() => {
+        // Fallback: save to localStorage
+        localStorage.setItem('ebike_data', JSON.stringify(data));
+        showToast('Saved to browser storage (server unavailable)');
+    });
+}
+
+function loadData() {
+    fetch('/api/load')
+        .then(r => r.json())
+        .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+                restoreBikes(data);
+            } else {
+                // Try localStorage fallback
+                const local = localStorage.getItem('ebike_data');
+                if (local) {
+                    restoreBikes(JSON.parse(local));
+                } else {
+                    addBike();
+                }
+            }
+            setTimeout(simulate, 150);
+        })
+        .catch(() => {
+            // Server not available, try localStorage
+            const local = localStorage.getItem('ebike_data');
+            if (local) {
+                restoreBikes(JSON.parse(local));
+            } else {
+                addBike();
+            }
+            setTimeout(simulate, 150);
+        });
+}
+
+function restoreBikes(dataArr) {
+    // Clear existing
+    bikes = [];
+    bikeCounter = 0;
+    document.getElementById('bikeGridBody').innerHTML = '';
+
+    dataArr.forEach(entry => {
+        bikeCounter++;
+        const bikeId = `bike_${bikeCounter}`;
+        const modifiedSet = new Set(entry.modified || []);
+        bikes.push({id: bikeId, defaults: {...DEFAULTS}, modified: modifiedSet});
+
+        const vals = entry.values;
+        const tbody = document.getElementById('bikeGridBody');
+        const tr = document.createElement('tr');
+        tr.id = bikeId;
+
+        tr.innerHTML = `<td><button class="delete-row-btn" onclick="deleteBike('${bikeId}')" title="Delete"><span class="material-symbols-outlined" style="font-size:18px">close</span></button></td>`;
+
+        COLUMNS.forEach(col => {
+            const td = document.createElement('td');
+            if (col === 'name') td.className = 'name-cell';
+            const input = document.createElement('input');
+            input.type = col === 'name' ? 'text' : 'number';
+            input.step = 'any';
+            input.dataset.col = col;
+            input.value = vals[col] !== undefined ? vals[col] : '';
+
+            if (CALCULATED_COLS.includes(col)) {
+                input.readOnly = true;
+                input.classList.add('calculated-field');
+                input.value = '';
+            }
+
+            if (ASSUMPTION_COLS.includes(col)) {
+                input.addEventListener('input', () => markModified(bikeId, col, input));
+                if (modifiedSet.has(col)) {
+                    input.classList.add('modified');
+                }
+            }
+
+            td.appendChild(input);
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+        recalcRow(bikeId);
+    });
+}
+
+// Toast notification
+function showToast(msg) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#333;color:#e0e0e0;padding:12px 20px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity 0.3s;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+}
+
+// Auto-save after every simulate
+const _origSimulate = simulate;
+simulate = function() {
+    _origSimulate();
+    saveData();
+};
+
+// Voltage slider
+let voltagePct = 0;
+const voltageSlider = document.getElementById('voltageSlider');
+const voltageLabel = document.getElementById('voltageLabel');
+voltageSlider.addEventListener('input', () => {
+    voltagePct = parseInt(voltageSlider.value);
+    voltageLabel.textContent = (voltagePct >= 0 ? '+' : '') + voltagePct + '%';
+    simulate();
+});
+
+// Load on page init
+loadData();
+
+// --- Rich Tooltip System ---
+const TOOLTIPS = {
+    topSpeed: {
+        title: 'Top Speed',
+        body: 'The listed/measured top speed on flat ground.',
+        formula: null,
+        note: 'Used to derive Kt — a faster motor at the same voltage means lower Kt (fewer windings, less torque per amp, more RPM per volt).'
+    },
+    motorPeak: {
+        title: 'Motor Peak Power',
+        body: 'Peak power rating from the spec sheet. This is a reference number — actual acceleration depends on current limits and Kt, not directly on wattage.',
+        formula: 'Power = Torque × Speed\nP = T · ω',
+        note: 'A "9000W" motor just means it can handle that power at high RPM. It doesn\'t mean more launch force than a "6000W" motor.'
+    },
+    battMaxI: {
+        title: 'Battery Current Limit',
+        body: 'The max current the controller draws from the battery. This is the number on the spec sheet (e.g. "90A controller").',
+        formula: 'Power ceiling:\n  P_max = V_bat × I_bat_max\n\nAt higher speeds this becomes\nthe binding constraint.',
+        note: 'The BMS rating is usually slightly higher as a safety backup. Use the controller value here.'
+    },
+    ctrlMaxI: {
+        title: 'Phase Current Limit',
+        body: 'Max current through the motor windings. Usually NOT published in specs. At low speed, the controller acts as a buck converter:',
+        formula: 'I_phase = I_bat / D\n\nwhere D = duty cycle (low at\nlow speed)\n\nLaunch torque:\n  T = Kt × I_phase',
+        note: 'This is the main knob for launch feel. Estimate from torque specs or use 2-3× battery current as a starting point.'
+    },
+    voc: {
+        title: 'Battery Open-Circuit Voltage',
+        body: 'Voltage with no load. Under load it sags due to internal resistance.',
+        formula: 'V_actual = V_oc - I_bat × R_bat',
+        note: '72V nominal pack: 72-84V depending on charge. A full 20S pack is ~84V, "72V" is nominal midpoint.'
+    },
+    rbat: {
+        title: 'Battery Internal Resistance',
+        body: 'Causes voltage sag under load. Lower = stiffer voltage = more power at high draw.',
+        formula: 'Voltage sag:\n  V_sag = I_bat × R_bat\n\nAt 90A with R=0.15Ω:\n  sag = 13.5V (!)',
+        note: 'High-quality pack: 0.05-0.15Ω. Cheap cells: 0.2-0.4Ω. Massive impact on high-current performance.'
+    },
+    rwind: {
+        title: 'Winding Resistance (phase-to-phase)',
+        body: 'Motor\'s electrical resistance. Causes I²R heat losses and voltage drop inside the motor.',
+        formula: 'Voltage eaten by resistance:\n  V_drop = I_phase × R_wind\n\nHeat generated:\n  P_heat = I² × R',
+        note: 'Typical: 0.02-0.15Ω. Lower = more efficient, less voltage wasted as heat.'
+    },
+    gearRatio: {
+        title: 'Gear Ratio',
+        body: 'Reduction from motor to wheel (motor RPM ÷ wheel RPM). For hub motors (motor is in the wheel), this is 1.',
+        formula: 'Wheel torque = Motor torque × G\nWheel speed = Motor speed / G\n\nHub motor: G = 1\nMid-drive with chain: G = 3-10',
+        note: 'Most e-bikes in this class use hub motors (G=1). The motor directly drives the wheel with no gearing.'
+    },
+    wheelR: {
+        title: 'Wheel Size (inches)',
+        body: 'Wheel diameter in inches. Determines the lever arm converting motor torque to linear force at the road.',
+        formula: 'Radius (m) = diameter(in) × 0.0254 / 2\nForce = T_wheel / R_wheel\n\n19" = 0.241m radius\n20" = 0.254m radius\n26" = 0.330m radius',
+        note: 'Smaller wheel = more force at the road for the same motor torque (like a lower gear). Also affects top speed and Kt calculation.'
+    },
+    mass: {
+        title: 'Total Mass (lbs)',
+        body: 'Bike + rider + cargo weight in pounds. Directly affects acceleration.',
+        formula: 'a = F_net / m\n\nTypical:\n  Bike: 65-130 lbs\n  Rider: 150-200 lbs\n  Total: 220-330 lbs',
+        note: 'Every pound matters for acceleration. Less impact on top speed (which is mainly drag-limited).'
+    },
+    cda: {
+        title: 'Aerodynamic Drag (CdA)',
+        body: 'Drag coefficient × frontal area. Determines air resistance, which dominates at high speed.',
+        formula: 'F_drag = ½ · ρ · CdA · v²\n\nUpright rider: 0.4-0.6 m²\nTucked: 0.3-0.4 m²\n\nDrag force quadruples when\nspeed doubles!',
+        note: 'Barely matters below 20 mph. Huge factor above 40 mph — sets your top speed ceiling.'
+    },
+    cr: {
+        title: 'Rolling Resistance',
+        body: 'Friction between tires and road. Small but constant drag at all speeds.',
+        formula: 'F_roll = Cr × m × g\n\nRoad tire: 0.005-0.01\nKnobby off-road: 0.015-0.025',
+        note: 'At 140kg: Cr=0.01 → 13.7N constant drag (like pushing against a ~1.4kg weight at all times).'
+    },
+    kt: {
+        title: 'Torque Constant Kt (CALCULATED)',
+        body: 'How much torque the motor produces per amp of phase current. Derived from your top speed:',
+        formula: 'Kt = (Voc - I_cruise·(R_w+R_b)) / ω_motor\n\nwhere:\n  ω_motor = (v_top/R_wheel) × G\n  I_cruise = P_top / Voc\n  P_top = (½ρ·CdA·v² + Cr·m·g)·v',
+        note: 'Logic: At top speed, back-EMF ≈ battery voltage. Since back-EMF = Ke×ω, and Kt=Ke in SI, solving gives us the motor constant. Higher top speed → lower Kt → less torque per amp.'
+    },
+    ke: {
+        title: 'Back-EMF Constant Ke (CALCULATED)',
+        body: 'Voltage generated per unit of motor speed. Numerically equal to Kt for ideal BLDC motors.',
+        formula: 'back-EMF = Ke × ω_motor\n\nAs speed rises:\n  EMF approaches V_bat\n  → less voltage to push current\n  → torque drops\n  → acceleration falls off',
+        note: 'This is why you hit top speed — when EMF = battery voltage, no more current can flow and you stop accelerating.'
+    },
+};
+
+// Create tooltip element
+const ttEl = document.createElement('div');
+ttEl.className = 'tooltip-popup';
+document.body.appendChild(ttEl);
+
+document.addEventListener('mouseover', (e) => {
+    const icon = e.target.closest('.info-icon');
+    if (!icon) return;
+    const key = icon.dataset.tt;
+    const data = TOOLTIPS[key];
+    if (!data) return;
+
+    let html = `<div class="tt-title">${data.title}</div>`;
+    html += `<div class="tt-body">${data.body}</div>`;
+    if (data.formula) {
+        html += `<code class="tt-formula">${data.formula}</code>`;
+    }
+    if (data.note) {
+        html += `<div class="tt-note">${data.note}</div>`;
+    }
+    ttEl.innerHTML = html;
+
+    // Position near the icon
+    const rect = icon.getBoundingClientRect();
+    let top = rect.bottom + 10;
+    let left = rect.left + rect.width / 2 - 170;
+
+    // Keep on screen
+    if (left < 10) left = 10;
+    if (left + 340 > window.innerWidth) left = window.innerWidth - 350;
+    if (top + 300 > window.innerHeight) top = rect.top - 10 - ttEl.offsetHeight;
+
+    ttEl.style.top = top + 'px';
+    ttEl.style.left = left + 'px';
+    ttEl.classList.add('visible');
+});
+
+document.addEventListener('mouseout', (e) => {
+    const icon = e.target.closest('.info-icon');
+    if (!icon) return;
+    ttEl.classList.remove('visible');
+});
+</script>
+</body>
+</html>
