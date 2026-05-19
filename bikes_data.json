@@ -19,7 +19,8 @@
     },
     "modified": [
       "mass"
-    ]
+    ],
+    "visible": true
   },
   {
     "values": {
@@ -42,7 +43,8 @@
     "modified": [
       "voc",
       "mass"
-    ]
+    ],
+    "visible": true
   },
   {
     "values": {
@@ -64,7 +66,8 @@
     },
     "modified": [
       "mass"
-    ]
+    ],
+    "visible": true
   },
   {
     "values": {
@@ -87,7 +90,8 @@
     "modified": [
       "voc",
       "mass"
-    ]
+    ],
+    "visible": true
   },
   {
     "values": {
@@ -110,7 +114,8 @@
     "modified": [
       "voc",
       "mass"
-    ]
+    ],
+    "visible": true
   },
   {
     "values": {
@@ -132,6 +137,7 @@
     },
     "modified": [
       "voc"
-    ]
+    ],
+    "visible": true
   }
 ]

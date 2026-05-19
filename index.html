@@ -228,6 +228,20 @@ table.data-grid td .row-actions {
     gap: 2px;
     align-items: center;
 }
+.drag-handle {
+    cursor: grab;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    padding: 2px;
+}
+.drag-handle:active { cursor: grabbing; }
+table.data-grid tr.drag-over {
+    border-top: 2px solid var(--accent);
+}
+table.data-grid tr.dragging {
+    opacity: 0.4;
+}
 /* Name input wider */
 td.name-cell input { min-width: 120px; }
 
@@ -786,13 +800,15 @@ function addBike() {
     const tr = document.createElement('tr');
     tr.id = bikeId;
 
-    // Row actions: move up, move down, visibility toggle, delete
+    // Row actions: drag handle, visibility toggle, delete
     tr.innerHTML = `<td><div class="row-actions">
-        <button class="row-action-btn" onclick="moveBike('${bikeId}',-1)" title="Move up"><span class="material-symbols-outlined" style="font-size:16px">arrow_upward</span></button>
-        <button class="row-action-btn" onclick="moveBike('${bikeId}',1)" title="Move down"><span class="material-symbols-outlined" style="font-size:16px">arrow_downward</span></button>
+        <span class="drag-handle" title="Drag to reorder"><span class="material-symbols-outlined" style="font-size:16px">drag_indicator</span></span>
         <button class="row-action-btn hide-toggle" id="vis_${bikeId}" onclick="toggleBikeVisibility('${bikeId}')" title="Show/Hide"><span class="material-symbols-outlined" style="font-size:16px">visibility</span></button>
         <button class="row-action-btn delete" onclick="deleteBike('${bikeId}')" title="Delete"><span class="material-symbols-outlined" style="font-size:16px">close</span></button>
     </div></td>`;
+
+    tr.draggable = true;
+    setupDragEvents(tr, bikeId);
 
     COLUMNS.forEach(col => {
         const td = document.createElement('td');
@@ -850,9 +866,7 @@ function moveBike(bikeId, direction) {
     if (idx < 0) return;
     const newIdx = idx + direction;
     if (newIdx < 0 || newIdx >= bikes.length) return;
-    // Swap in array
     [bikes[idx], bikes[newIdx]] = [bikes[newIdx], bikes[idx]];
-    // Swap in DOM
     const tbody = document.getElementById('bikeGridBody');
     const rows = [...tbody.children];
     const row = rows[idx];
@@ -862,6 +876,41 @@ function moveBike(bikeId, direction) {
     } else {
         tbody.insertBefore(target, row);
     }
+}
+
+let dragSrcId = null;
+function setupDragEvents(tr, bikeId) {
+    tr.addEventListener('dragstart', e => {
+        dragSrcId = bikeId;
+        tr.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', bikeId);
+    });
+    tr.addEventListener('dragend', () => {
+        dragSrcId = null;
+        tr.classList.remove('dragging');
+        document.querySelectorAll('#bikeGridBody tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+    });
+    tr.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (tr.id !== dragSrcId) tr.classList.add('drag-over');
+    });
+    tr.addEventListener('dragleave', () => {
+        tr.classList.remove('drag-over');
+    });
+    tr.addEventListener('drop', e => {
+        e.preventDefault();
+        tr.classList.remove('drag-over');
+        if (!dragSrcId || dragSrcId === bikeId) return;
+        const tbody = document.getElementById('bikeGridBody');
+        const srcRow = document.getElementById(dragSrcId);
+        // Insert dragged row before the drop target
+        tbody.insertBefore(srcRow, tr);
+        // Reorder bikes array to match DOM
+        const newOrder = [...tbody.children].map(r => r.id);
+        bikes.sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
+    });
 }
 
 function getRowValues(bikeId) {
@@ -1211,11 +1260,13 @@ function restoreBikes(dataArr) {
         if (!isVisible) tr.classList.add('bike-hidden');
 
         tr.innerHTML = `<td><div class="row-actions">
-            <button class="row-action-btn" onclick="moveBike('${bikeId}',-1)" title="Move up"><span class="material-symbols-outlined" style="font-size:16px">arrow_upward</span></button>
-            <button class="row-action-btn" onclick="moveBike('${bikeId}',1)" title="Move down"><span class="material-symbols-outlined" style="font-size:16px">arrow_downward</span></button>
+            <span class="drag-handle" title="Drag to reorder"><span class="material-symbols-outlined" style="font-size:16px">drag_indicator</span></span>
             <button class="row-action-btn hide-toggle${isVisible ? '' : ' hidden'}" id="vis_${bikeId}" onclick="toggleBikeVisibility('${bikeId}')" title="Show/Hide"><span class="material-symbols-outlined" style="font-size:16px">${isVisible ? 'visibility' : 'visibility_off'}</span></button>
             <button class="row-action-btn delete" onclick="deleteBike('${bikeId}')" title="Delete"><span class="material-symbols-outlined" style="font-size:16px">close</span></button>
         </div></td>`;
+
+        tr.draggable = true;
+        setupDragEvents(tr, bikeId);
 
         COLUMNS.forEach(col => {
             const td = document.createElement('td');
