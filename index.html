@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>E-Bike Acceleration Simulator</title>
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Material+Symbols+Outlined" rel="stylesheet">
 <style>
 :root {
@@ -562,7 +565,7 @@ td.name-cell input { min-width: 120px; }
     </section>
 
     <!-- Equation Derivations -->
-    <section class="grid-section" style="padding: 24px 28px;">
+    <section class="grid-section" style="padding: 24px 28px;" id="derivation-section">
         <h2 style="font-size:18px;font-weight:600;margin-bottom:20px;color:var(--accent);display:flex;align-items:center;gap:8px;">
             <span class="material-symbols-outlined" style="font-size:20px">functions</span>
             How It Works — Full Derivation
@@ -571,112 +574,125 @@ td.name-cell input { min-width: 120px; }
         <div class="derivation-content">
             <div class="deriv-section">
                 <h3>1. The Motor — Converting Electricity to Spinning</h3>
-                <p>A brushless DC (BLDC) hub motor has magnets on the wheel and copper coils on the axle. When current flows through the coils, it pushes against the magnets and makes the wheel spin.</p>
-                <p>Two numbers define any motor:</p>
+                <p>A brushless DC (BLDC) hub motor has permanent magnets on the wheel and copper coils on the axle. When current flows through the coils, electromagnetic force pushes against the magnets and spins the wheel.</p>
+                <p>Two constants define any motor:</p>
                 <ul>
-                    <li><strong>K<sub>t</sub></strong> (torque constant) — how much torque you get per amp: <span class="math">T = K_t × I</span></li>
-                    <li><strong>K<sub>e</sub></strong> (back-EMF constant) — how much voltage the motor generates when spinning: <span class="math">E = K_e × ω</span></li>
+                    <li><strong>Torque constant</strong> \( K_t \) — torque produced per ampere of current:</li>
                 </ul>
-                <p>The magic: for any BLDC motor, <strong>K<sub>t</sub> = K<sub>e</sub></strong> (in SI units). They're the same number! A motor that gives lots of torque per amp also generates lots of voltage per speed.</p>
+                <div class="equation-box">$$ T = K_t \cdot I $$</div>
+                <ul>
+                    <li><strong>Back-EMF constant</strong> \( K_e \) — voltage generated per unit of angular velocity:</li>
+                </ul>
+                <div class="equation-box">$$ E = K_e \cdot \omega $$</div>
+                <p>The key identity for BLDC motors (from energy conservation):</p>
+                <div class="equation-box">$$ K_t = K_e \quad \text{(in SI units: Nm/A = V·s/rad)} $$</div>
+                <p>A motor that produces lots of torque per amp also generates lots of back-EMF per unit speed. You can't have one without the other.</p>
             </div>
 
             <div class="deriv-section">
                 <h3>2. The Electrical Equation — Voltage Budget</h3>
-                <p>Think of the battery voltage as a "budget" that gets spent on three things:</p>
-                <div class="equation-box">
-                    V<sub>bat</sub> = E + I × R<sub>winding</sub> + I<sub>bat</sub> × R<sub>battery</sub>
-                </div>
-                <p>Where:</p>
-                <ul>
-                    <li><strong>E = K<sub>e</sub> × ω</strong> — back-EMF (voltage "used up" by the motor spinning)</li>
-                    <li><strong>I × R<sub>winding</sub></strong> — voltage lost as heat in the motor coils</li>
-                    <li><strong>I<sub>bat</sub> × R<sub>battery</sub></strong> — voltage lost inside the battery (sag)</li>
-                </ul>
-                <p>As you go faster, the back-EMF E grows. Eventually it uses up almost all the battery voltage, and there's nothing left to push current through → no more torque → you stop accelerating. That's your top speed.</p>
+                <p>The battery voltage is a fixed "budget" that must be divided among three consumers:</p>
+                <div class="equation-box">$$ V_{oc} = \underbrace{K_e \cdot \omega}_{\text{back-EMF}} + \underbrace{I \cdot R_{\text{wind}}}_{\text{motor heat}} + \underbrace{I_{\text{bat}} \cdot R_{\text{bat}}}_{\text{battery sag}} $$</div>
+                <p>As speed \(\omega\) increases, the back-EMF term \(K_e \omega\) grows, leaving less voltage to push current. Eventually, at top speed, nearly all the voltage is consumed by back-EMF and only a trickle of current flows.</p>
             </div>
 
             <div class="deriv-section">
-                <h3>3. Finding K<sub>t</sub> from Top Speed</h3>
-                <p>At top speed, you're no longer accelerating — the motor just needs enough torque to fight air drag and tire friction. We use this to work backwards:</p>
+                <h3>3. Deriving \( K_t \) from Top Speed</h3>
+                <p>At top speed the bike is in steady state — no acceleration. The motor only needs to overcome drag and rolling resistance:</p>
                 <div class="equation-box">
-                    <div class="eq-step">Step 1: Drag force at top speed</div>
-                    F<sub>drag</sub> = ½ × ρ × CdA × v<sub>top</sub>²
-                    <div class="eq-step">Step 2: Rolling resistance</div>
-                    F<sub>roll</sub> = C<sub>r</sub> × m × g
-                    <div class="eq-step">Step 3: Power needed to cruise at top speed</div>
-                    P<sub>cruise</sub> = (F<sub>drag</sub> + F<sub>roll</sub>) × v<sub>top</sub>
-                    <div class="eq-step">Step 4: Current at cruise</div>
-                    I<sub>cruise</sub> = P<sub>cruise</sub> / V<sub>oc</sub>
-                    <div class="eq-step">Step 5: Motor speed (hub motor, G=1)</div>
-                    ω = v<sub>top</sub> / R<sub>wheel</sub>
-                    <div class="eq-step">Step 6: Solve for K<sub>e</sub></div>
-                    K<sub>e</sub> = (V<sub>oc</sub> − I<sub>cruise</sub> × (R<sub>wind</sub> + R<sub>bat</sub>)) / ω
+                    $$ F_{\text{drag}} = \frac{1}{2} \rho \cdot C_d A \cdot v_{\text{top}}^2 $$
+                    $$ F_{\text{roll}} = C_r \cdot m \cdot g $$
+                    $$ P_{\text{cruise}} = (F_{\text{drag}} + F_{\text{roll}}) \cdot v_{\text{top}} $$
                 </div>
-                <p>Since K<sub>t</sub> = K<sub>e</sub>, we now know the motor's torque constant from just the top speed and battery voltage.</p>
+                <p>The cruise current drawn from the battery:</p>
+                <div class="equation-box">$$ I_{\text{cruise}} \approx \frac{P_{\text{cruise}}}{V_{oc}} $$</div>
+                <p>For a hub motor (gear ratio \(G=1\)), the motor's angular velocity at top speed:</p>
+                <div class="equation-box">$$ \omega_{\text{top}} = \frac{v_{\text{top}}}{R_{\text{wheel}}} $$</div>
+                <p>Substituting into the voltage equation at top speed and solving for \(K_e\):</p>
+                <div class="equation-box">$$ \boxed{K_t = K_e = \frac{V_{oc} - I_{\text{cruise}} \cdot (R_{\text{wind}} + R_{\text{bat}})}{\omega_{\text{top}}}} $$</div>
+                <p>This is how we extract the motor constant from just the top speed, voltage, and resistances.</p>
             </div>
 
             <div class="deriv-section">
-                <h3>4. Three Speed Zones — What Limits You When</h3>
-                <p>At any speed, the motor current is limited by whichever constraint is tightest:</p>
+                <h3>4. Three Constraint Zones & Transition Points</h3>
+                <p>At any speed, three independent limits each cap the motor current. The <em>lowest</em> one wins:</p>
 
                 <div class="constraint-box phase">
-                    <h4>Zone 1: Phase Current Limit (low speed)</h4>
-                    <div class="equation-box">I = I<sub>phase_max</sub> (set by controller)</div>
-                    <p>At low speed, back-EMF is small, so the controller can push maximum current into the motor. Torque is constant: T = K<sub>t</sub> × I<sub>phase_max</sub></p>
-                    <p><strong>This is your launch acceleration.</strong></p>
+                    <h4>Zone 1: Phase Current Limit (constant torque)</h4>
+                    <div class="equation-box">$$ I_1 = I_{\text{phase,max}} \quad \Rightarrow \quad T_1 = K_t \cdot I_{\text{phase,max}} $$</div>
+                    <p>At low speed, back-EMF is small. The controller's PWM duty cycle is low, so it can boost phase current well above battery current (buck converter effect). The controller's hardware phase-current limit is the binding constraint. Torque is constant — this is your hardest launch.</p>
                 </div>
 
                 <div class="constraint-box battery">
-                    <h4>Zone 2: Battery Current Limit (mid speed)</h4>
+                    <h4>Zone 2: Battery Current Limit (constant power)</h4>
                     <div class="equation-box">
-                        P<sub>available</sub> = V<sub>bat</sub> × I<sub>bat_max</sub><br>
-                        As speed ↑, power demand rises → battery current hits its limit<br>
-                        Torque must drop: T = P / (ω × R<sub>wheel</sub>)
+                        $$ P_{\text{bat}} = (V_{oc} - I_{\text{bat,max}} \cdot R_{\text{bat}}) \cdot I_{\text{bat,max}} $$
+                        $$ I_2 = \frac{-E + \sqrt{E^2 + 4 R_{\text{wind}} \cdot P_{\text{bat}}}}{2 R_{\text{wind}}} $$
                     </div>
-                    <p>The controller can no longer maintain full phase current because the battery can't supply enough power. You're in "constant power" mode — torque falls as 1/speed.</p>
+                    <p>As speed rises, maintaining the phase current requires more power (since motor voltage = E + IR rises). When the required battery power exceeds \(V_{\text{bat}} \times I_{\text{bat,max}}\), the controller must reduce phase current to stay within the battery limit. Torque now falls roughly as \(1/\omega\) — constant power region.</p>
                 </div>
 
                 <div class="constraint-box voltage">
-                    <h4>Zone 3: Voltage Limit (high speed)</h4>
-                    <div class="equation-box">I = (V<sub>bat</sub> − K<sub>e</sub> × ω) / (R<sub>wind</sub> + R<sub>bat</sub>)</div>
-                    <p>Back-EMF is so high it nearly equals battery voltage. Very little current can flow regardless of limits. Torque drops linearly to zero at the no-load speed.</p>
+                    <h4>Zone 3: Voltage Limit (back-EMF dominated)</h4>
+                    <div class="equation-box">$$ I_3 = \frac{V_{oc} - K_e \cdot \omega}{R_{\text{wind}} + R_{\text{bat}}} $$</div>
+                    <p>At very high speed, the back-EMF \(K_e \omega\) approaches the battery voltage even at 100% duty cycle. Current (and torque) drops linearly to zero. This is the "wall" approaching top speed.</p>
                 </div>
+
+                <h4 style="margin-top:20px; color:#fff;">When Do the Transitions Happen?</h4>
+                <p>The bike switches from Zone 1 → Zone 2 when the battery power needed to sustain full phase current equals the battery's max output:</p>
+                <div class="equation-box">
+                    $$ \text{Zone 1→2 transition speed:} \quad v_{12} \approx \frac{P_{\text{bat,max}}}{K_t \cdot I_{\text{phase,max}} / R_w} $$
+                    $$ \text{i.e., when } \quad K_e \cdot \omega + I_{\text{phase,max}} \cdot R_{\text{wind}} \approx \frac{P_{\text{bat}}}{I_{\text{phase,max}}} $$
+                </div>
+                <p>It switches from Zone 2 → Zone 3 when the voltage-limited current drops below the battery-limited current:</p>
+                <div class="equation-box">
+                    $$ \text{Zone 2→3 transition:} \quad \frac{V_{oc} - K_e \omega}{R_{\text{wind}} + R_{\text{bat}}} < I_2(\omega) $$
+                </div>
+                <p><strong>Physical intuition:</strong></p>
+                <ul>
+                    <li><strong>Zone 1→2:</strong> "The battery can't keep up." You're demanding more power than it can supply at that current limit.</li>
+                    <li><strong>Zone 2→3:</strong> "The motor is fighting itself." Back-EMF is so large that even with the full battery voltage applied, current is physically limited by Ohm's law.</li>
+                </ul>
             </div>
 
             <div class="deriv-section">
                 <h3>5. From Torque to Acceleration</h3>
-                <p>Once we know torque at any speed, Newton's 2nd law gives acceleration:</p>
-                <div class="equation-box">
-                    <div class="eq-step">Force at wheel (hub motor):</div>
-                    F = T / R<sub>wheel</sub> = K<sub>t</sub> × I / R<sub>wheel</sub>
-                    <div class="eq-step">Subtract drag and rolling resistance:</div>
-                    F<sub>net</sub> = F − F<sub>drag</sub> − F<sub>roll</sub>
-                    <div class="eq-step">Newton's 2nd law:</div>
-                    <strong>a = F<sub>net</sub> / m</strong>
-                </div>
-                <p>The simulation computes this at tiny time steps (0.05s), updating speed each step. That traces out the full speed-vs-time curve you see in the chart.</p>
+                <p>The actual motor current at any speed is the minimum of all three constraints:</p>
+                <div class="equation-box">$$ I_{\text{actual}}(\omega) = \min(I_1,\; I_2,\; I_3) $$</div>
+                <p>Motor torque converts to force at the wheel (hub motor):</p>
+                <div class="equation-box">$$ F_{\text{traction}} = \frac{K_t \cdot I_{\text{actual}}}{R_{\text{wheel}}} $$</div>
+                <p>Net force after subtracting drag and rolling resistance:</p>
+                <div class="equation-box">$$ F_{\text{net}} = F_{\text{traction}} - \frac{1}{2}\rho \, C_dA \, v^2 - C_r \, m \, g $$</div>
+                <p>Newton's second law gives instantaneous acceleration:</p>
+                <div class="equation-box">$$ \boxed{a = \frac{F_{\text{net}}}{m}} $$</div>
+                <p>The simulation integrates this using Euler's method with \(\Delta t = 0.05\,\text{s}\):</p>
+                <div class="equation-box">$$ v(t + \Delta t) = v(t) + a(t) \cdot \Delta t $$</div>
             </div>
 
             <div class="deriv-section">
                 <h3>6. Why Higher Wattage ≠ Faster Launch</h3>
-                <p>For hub motors on the same voltage:</p>
+                <p>For a hub motor, combining the Kt derivation with the launch force formula:</p>
                 <div class="equation-box">
-                    Launch force = V<sub>oc</sub> × I<sub>phase</sub> / v<sub>top</sub>
+                    $$ F_{\text{launch}} = \frac{K_t \cdot I_{\text{phase}}}{R_w} = \frac{V_{oc}}{v_{\text{top}}} \cdot I_{\text{phase}} \cdot \frac{R_w}{R_w} $$
+                    $$ \boxed{F_{\text{launch}} \approx \frac{V_{oc} \cdot I_{\text{phase}}}{v_{\text{top}}}} $$
                 </div>
-                <p>If a "9000W" motor achieves its rating by having higher top speed (lower K<sub>t</sub>), then at the same phase current it actually has <em>less</em> launch torque than a "6000W" motor with lower top speed.</p>
-                <p><strong>Wattage = torque × speed.</strong> You can have high watts from lots of torque at low speed, OR moderate torque at high speed. The spec sheet tells you total watts, not how they're split.</p>
+                <p>The wheel radius cancels! Launch force depends only on voltage, phase current, and top speed. A "9000W" motor with higher top speed has <em>lower</em> Kt, producing less launch force at the same current than a "6000W" motor with lower top speed.</p>
+                <p>\(\text{Power} = \text{Torque} \times \text{Speed}\). High wattage can come from modest torque at high RPM.</p>
             </div>
 
             <div class="deriv-section">
                 <h3>7. The Voltage Slider — State of Charge</h3>
-                <p>A "72V" battery isn't always 72V:</p>
-                <ul>
-                    <li><strong>Fully charged (100% SOC):</strong> ~84V (+15%) for a 20S lithium pack</li>
-                    <li><strong>Nominal (50% SOC):</strong> ~72V (0%)</li>
-                    <li><strong>Nearly empty (20% SOC):</strong> ~62V (−14%)</li>
-                    <li><strong>Under heavy load:</strong> further sag from internal resistance</li>
-                </ul>
-                <p>Higher voltage → more current can flow at any speed → more torque → faster acceleration. This is why your bike feels faster on a full charge.</p>
+                <p>A lithium battery's voltage varies with state of charge (SOC):</p>
+                <div class="equation-box">
+                    $$ V_{\text{actual}} = V_{\text{nominal}} \times (1 + \text{slider}\%) $$
+                </div>
+                <table style="width:100%;font-size:13px;color:#bbb;margin:10px 0;">
+                    <tr><td>Fully charged (100% SOC):</td><td>\(\approx +15\%\) above nominal</td></tr>
+                    <tr><td>Mid charge (50% SOC):</td><td>\(0\%\) — nominal</td></tr>
+                    <tr><td>Nearly empty (20% SOC):</td><td>\(\approx -14\%\) below nominal</td></tr>
+                    <tr><td>Under heavy load:</td><td>Additional sag: \(\Delta V = I_{\text{bat}} \cdot R_{\text{bat}}\)</td></tr>
+                </table>
+                <p>Higher voltage → more headroom above back-EMF → more current → more torque. This is why the bike feels noticeably punchier on a full charge.</p>
             </div>
         </div>
     </section>
@@ -1302,6 +1318,32 @@ document.addEventListener('mouseout', (e) => {
     const icon = e.target.closest('.info-icon');
     if (!icon) return;
     ttEl.classList.remove('visible');
+});
+
+// Render KaTeX on page load
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.getElementById('derivation-section'), {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '\\(', right: '\\)', display: false},
+            ],
+            throwOnError: false
+        });
+    } else {
+        // KaTeX defer - wait for it
+        window.addEventListener('load', () => {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.getElementById('derivation-section'), {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '\\(', right: '\\)', display: false},
+                    ],
+                    throwOnError: false
+                });
+            }
+        });
+    }
 });
 </script>
 </body>
