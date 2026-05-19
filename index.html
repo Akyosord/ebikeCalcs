@@ -198,19 +198,35 @@ table.data-grid td input[readonly] {
     opacity: 0.7;
     cursor: default;
 }
-table.data-grid td .delete-row-btn {
+table.data-grid td .row-action-btn {
     background: transparent;
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 4px;
+    padding: 2px;
     border-radius: 4px;
     display: flex;
     align-items: center;
 }
-table.data-grid td .delete-row-btn:hover {
+table.data-grid td .row-action-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.06);
+}
+table.data-grid td .row-action-btn.delete:hover {
     color: var(--error);
     background: rgba(207, 102, 121, 0.1);
+}
+table.data-grid td .row-action-btn.hide-toggle.hidden {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+table.data-grid tr.bike-hidden td input {
+    opacity: 0.35;
+}
+table.data-grid td .row-actions {
+    display: flex;
+    gap: 2px;
+    align-items: center;
 }
 /* Name input wider */
 td.name-cell input { min-width: 120px; }
@@ -764,14 +780,19 @@ function addBike() {
     }
 
     const bikeId = `bike_${bikeCounter}`;
-    bikes.push({id: bikeId, defaults: {...DEFAULTS}, modified: new Set()});
+    bikes.push({id: bikeId, defaults: {...DEFAULTS}, modified: new Set(), visible: true});
 
     const tbody = document.getElementById('bikeGridBody');
     const tr = document.createElement('tr');
     tr.id = bikeId;
 
-    // Delete button
-    tr.innerHTML = `<td><button class="delete-row-btn" onclick="deleteBike('${bikeId}')" title="Delete"><span class="material-symbols-outlined" style="font-size:18px">close</span></button></td>`;
+    // Row actions: move up, move down, visibility toggle, delete
+    tr.innerHTML = `<td><div class="row-actions">
+        <button class="row-action-btn" onclick="moveBike('${bikeId}',-1)" title="Move up"><span class="material-symbols-outlined" style="font-size:16px">arrow_upward</span></button>
+        <button class="row-action-btn" onclick="moveBike('${bikeId}',1)" title="Move down"><span class="material-symbols-outlined" style="font-size:16px">arrow_downward</span></button>
+        <button class="row-action-btn hide-toggle" id="vis_${bikeId}" onclick="toggleBikeVisibility('${bikeId}')" title="Show/Hide"><span class="material-symbols-outlined" style="font-size:16px">visibility</span></button>
+        <button class="row-action-btn delete" onclick="deleteBike('${bikeId}')" title="Delete"><span class="material-symbols-outlined" style="font-size:16px">close</span></button>
+    </div></td>`;
 
     COLUMNS.forEach(col => {
         const td = document.createElement('td');
@@ -805,6 +826,42 @@ function deleteBike(bikeId) {
     const row = document.getElementById(bikeId);
     if (row) row.remove();
     bikes = bikes.filter(b => b.id !== bikeId);
+}
+
+function toggleBikeVisibility(bikeId) {
+    const bike = bikes.find(b => b.id === bikeId);
+    if (!bike) return;
+    bike.visible = !bike.visible;
+    const row = document.getElementById(bikeId);
+    const btn = document.getElementById(`vis_${bikeId}`);
+    if (bike.visible) {
+        row.classList.remove('bike-hidden');
+        btn.classList.remove('hidden');
+        btn.querySelector('span').textContent = 'visibility';
+    } else {
+        row.classList.add('bike-hidden');
+        btn.classList.add('hidden');
+        btn.querySelector('span').textContent = 'visibility_off';
+    }
+}
+
+function moveBike(bikeId, direction) {
+    const idx = bikes.findIndex(b => b.id === bikeId);
+    if (idx < 0) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= bikes.length) return;
+    // Swap in array
+    [bikes[idx], bikes[newIdx]] = [bikes[newIdx], bikes[idx]];
+    // Swap in DOM
+    const tbody = document.getElementById('bikeGridBody');
+    const rows = [...tbody.children];
+    const row = rows[idx];
+    const target = rows[newIdx];
+    if (direction === -1) {
+        tbody.insertBefore(row, target);
+    } else {
+        tbody.insertBefore(target, row);
+    }
 }
 
 function getRowValues(bikeId) {
@@ -874,6 +931,7 @@ function simulate() {
 
     bikes.forEach((bike, idx) => {
         recalcRow(bike.id);
+        if (!bike.visible) return;
         const vals = getRowValues(bike.id);
         if (!vals) return;
 
@@ -1084,6 +1142,7 @@ function getAllBikeData() {
         return {
             values: vals,
             modified: [...bike.modified],
+            visible: bike.visible,
         };
     });
 }
@@ -1142,14 +1201,21 @@ function restoreBikes(dataArr) {
         bikeCounter++;
         const bikeId = `bike_${bikeCounter}`;
         const modifiedSet = new Set(entry.modified || []);
-        bikes.push({id: bikeId, defaults: {...DEFAULTS}, modified: modifiedSet});
+        const isVisible = entry.visible !== false;
+        bikes.push({id: bikeId, defaults: {...DEFAULTS}, modified: modifiedSet, visible: isVisible});
 
         const vals = entry.values;
         const tbody = document.getElementById('bikeGridBody');
         const tr = document.createElement('tr');
         tr.id = bikeId;
+        if (!isVisible) tr.classList.add('bike-hidden');
 
-        tr.innerHTML = `<td><button class="delete-row-btn" onclick="deleteBike('${bikeId}')" title="Delete"><span class="material-symbols-outlined" style="font-size:18px">close</span></button></td>`;
+        tr.innerHTML = `<td><div class="row-actions">
+            <button class="row-action-btn" onclick="moveBike('${bikeId}',-1)" title="Move up"><span class="material-symbols-outlined" style="font-size:16px">arrow_upward</span></button>
+            <button class="row-action-btn" onclick="moveBike('${bikeId}',1)" title="Move down"><span class="material-symbols-outlined" style="font-size:16px">arrow_downward</span></button>
+            <button class="row-action-btn hide-toggle${isVisible ? '' : ' hidden'}" id="vis_${bikeId}" onclick="toggleBikeVisibility('${bikeId}')" title="Show/Hide"><span class="material-symbols-outlined" style="font-size:16px">${isVisible ? 'visibility' : 'visibility_off'}</span></button>
+            <button class="row-action-btn delete" onclick="deleteBike('${bikeId}')" title="Delete"><span class="material-symbols-outlined" style="font-size:16px">close</span></button>
+        </div></td>`;
 
         COLUMNS.forEach(col => {
             const td = document.createElement('td');

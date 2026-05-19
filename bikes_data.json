@@ -111,5 +111,27 @@
       "voc",
       "mass"
     ]
+  },
+  {
+    "values": {
+      "name": "flydone r8",
+      "topSpeed": 35,
+      "motorPeak": 4000,
+      "battMaxI": 70,
+      "ctrlMaxI": 200,
+      "voc": 48,
+      "rbat": 0.15,
+      "rwind": 0.08,
+      "gearRatio": 1,
+      "wheelR": 19,
+      "mass": 250,
+      "cda": 0.5,
+      "cr": 0.01,
+      "kt": 0.6407,
+      "ke": 0.6407
+    },
+    "modified": [
+      "voc"
+    ]
   }
 ]
