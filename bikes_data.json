@@ -139,5 +139,28 @@
       "voc"
     ],
     "visible": true
+  },
+  {
+    "values": {
+      "name": "Ekxbike tx1",
+      "topSpeed": 45,
+      "motorPeak": 6000,
+      "battMaxI": 70,
+      "ctrlMaxI": 200,
+      "voc": 60,
+      "rbat": 0.15,
+      "rwind": 0.08,
+      "gearRatio": 1,
+      "wheelR": 19,
+      "mass": 250,
+      "cda": 0.5,
+      "cr": 0.01,
+      "kt": 0.5948,
+      "ke": 0.5948
+    },
+    "modified": [
+      "voc"
+    ],
+    "visible": true
   }
 ]

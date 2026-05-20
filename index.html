@@ -615,7 +615,7 @@ td.name-cell input { min-width: 120px; }
                 </ul>
                 <div class="equation-box">$$ E = K_e \cdot \omega $$</div>
                 <p>The key identity for BLDC motors (from energy conservation):</p>
-                <div class="equation-box">$$ K_t = K_e \quad \text{(in SI units: Nm/A = V·s/rad)} $$</div>
+                <div class="equation-box">$$ K_t = K_e \quad \text{(in SI units: Nm/A} = \text{V}{\cdot}\text{s/rad)} $$</div>
                 <p>A motor that produces lots of torque per amp also generates lots of back-EMF per unit speed. You can't have one without the other.</p>
             </div>
 
@@ -1072,6 +1072,10 @@ function simulate() {
         legend: {x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top', bgcolor: 'rgba(30,30,30,0.8)'},
         yaxis: {gridcolor: '#333', zerolinecolor: '#444', title: 'Acceleration (g)'},
     }, {responsive: true, displayModeBar: false});
+
+    // Store axis ranges for slider use
+    window._lastSpeedYRange = document.getElementById('speedChart').layout.yaxis.range?.slice();
+    window._lastAccelYRange = document.getElementById('accelChart').layout.yaxis.range?.slice();
 }
 
 // Get contiguous constraint segments from array
@@ -1327,7 +1331,16 @@ const voltageLabel = document.getElementById('voltageLabel');
 voltageSlider.addEventListener('input', () => {
     voltagePct = parseInt(voltageSlider.value);
     voltageLabel.textContent = (voltagePct >= 0 ? '+' : '') + voltagePct + '%';
+    // Preserve y-axis ranges when slider changes
+    const syRange = window._lastSpeedYRange;
+    const ayRange = window._lastAccelYRange;
     simulate();
+    if (syRange) {
+        Plotly.relayout('speedChart', {'yaxis.range': syRange});
+    }
+    if (ayRange) {
+        Plotly.relayout('accelChart', {'yaxis.range': ayRange});
+    }
 });
 
 // Load on page init
