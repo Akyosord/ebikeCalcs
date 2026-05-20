@@ -972,7 +972,7 @@ function recalcRow(bikeId) {
     row.querySelector('input[data-col="ke"]').value = Ke.toFixed(4);
 }
 
-function simulate() {
+function simulate(keepYAxis) {
     const speedTraces = [];
     const accelTraces = [];
     const colors = ['#bb86fc','#03dac6','#ff7043','#42a5f5','#66bb6a','#ffa726','#ab47bc','#ef5350'];
@@ -1061,21 +1061,33 @@ function simulate() {
         xaxis: {gridcolor: '#333', zerolinecolor: '#444', title: 'Time (s)'},
     };
 
+    const speedYAxis = {gridcolor: '#333', zerolinecolor: '#444', title: 'Speed (mph)'};
+    const accelYAxis = {gridcolor: '#333', zerolinecolor: '#444', title: 'Acceleration (g)'};
+
+    if (keepYAxis) {
+        const sc = document.getElementById('speedChart');
+        const ac = document.getElementById('accelChart');
+        if (sc && sc.layout && sc.layout.yaxis && sc.layout.yaxis.range) {
+            speedYAxis.range = sc.layout.yaxis.range.slice();
+            speedYAxis.autorange = false;
+        }
+        if (ac && ac.layout && ac.layout.yaxis && ac.layout.yaxis.range) {
+            accelYAxis.range = ac.layout.yaxis.range.slice();
+            accelYAxis.autorange = false;
+        }
+    }
+
     Plotly.newPlot('speedChart', speedTraces, {
         ...darkLayout,
         legend: {x: 0.98, y: 0.02, xanchor: 'right', yanchor: 'bottom', bgcolor: 'rgba(30,30,30,0.8)'},
-        yaxis: {gridcolor: '#333', zerolinecolor: '#444', title: 'Speed (mph)'},
+        yaxis: speedYAxis,
     }, {responsive: true, displayModeBar: false});
 
     Plotly.newPlot('accelChart', accelTraces, {
         ...darkLayout,
         legend: {x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top', bgcolor: 'rgba(30,30,30,0.8)'},
-        yaxis: {gridcolor: '#333', zerolinecolor: '#444', title: 'Acceleration (g)'},
+        yaxis: accelYAxis,
     }, {responsive: true, displayModeBar: false});
-
-    // Store axis ranges for slider use
-    window._lastSpeedYRange = document.getElementById('speedChart').layout.yaxis.range?.slice();
-    window._lastAccelYRange = document.getElementById('accelChart').layout.yaxis.range?.slice();
 }
 
 // Get contiguous constraint segments from array
@@ -1319,8 +1331,8 @@ function showToast(msg) {
 
 // Auto-save after every simulate
 const _origSimulate = simulate;
-simulate = function() {
-    _origSimulate();
+simulate = function(keepYAxis) {
+    _origSimulate(keepYAxis);
     saveData();
 };
 
@@ -1331,16 +1343,7 @@ const voltageLabel = document.getElementById('voltageLabel');
 voltageSlider.addEventListener('input', () => {
     voltagePct = parseInt(voltageSlider.value);
     voltageLabel.textContent = (voltagePct >= 0 ? '+' : '') + voltagePct + '%';
-    // Preserve y-axis ranges when slider changes
-    const syRange = window._lastSpeedYRange;
-    const ayRange = window._lastAccelYRange;
-    simulate();
-    if (syRange) {
-        Plotly.relayout('speedChart', {'yaxis.range': syRange});
-    }
-    if (ayRange) {
-        Plotly.relayout('accelChart', {'yaxis.range': ayRange});
-    }
+    simulate(true);
 });
 
 // Load on page init
