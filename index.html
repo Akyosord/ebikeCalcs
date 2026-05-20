@@ -1228,13 +1228,15 @@ function saveData() {
 }
 
 function loadData() {
-    fetch('/api/load')
-        .then(r => r.json())
+    fetch('bikes_data.json')
+        .then(r => {
+            if (!r.ok) throw new Error('Not found');
+            return r.json();
+        })
         .then(data => {
             if (Array.isArray(data) && data.length > 0) {
                 restoreBikes(data);
             } else {
-                // Try localStorage fallback
                 const local = localStorage.getItem('ebike_data');
                 if (local) {
                     restoreBikes(JSON.parse(local));
@@ -1245,7 +1247,6 @@ function loadData() {
             setTimeout(simulate, 150);
         })
         .catch(() => {
-            // Server not available, try localStorage
             const local = localStorage.getItem('ebike_data');
             if (local) {
                 restoreBikes(JSON.parse(local));
